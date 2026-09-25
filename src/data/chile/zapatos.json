@@ -1,0 +1,180 @@
+{
+  "category": "zapatos",
+  "categoryLabel": "Zapatos y zapatillas",
+  "country": "Chile",
+  "countrySlug": "chile",
+  "sizeSystem": "EU",
+  "source": "Guía oficial de tallas de Nike (nike.com/size-fit), verificada el 24-09-2026. En Chile se usa la numeración europea.",
+  "men": [
+    {
+      "us": 6,
+      "local": 38.5,
+      "eu": 38.5,
+      "cm": 24
+    },
+    {
+      "us": 6.5,
+      "local": 39,
+      "eu": 39,
+      "cm": 24.5
+    },
+    {
+      "us": 7,
+      "local": 40,
+      "eu": 40,
+      "cm": 25
+    },
+    {
+      "us": 7.5,
+      "local": 40.5,
+      "eu": 40.5,
+      "cm": 25.5
+    },
+    {
+      "us": 8,
+      "local": 41,
+      "eu": 41,
+      "cm": 26
+    },
+    {
+      "us": 8.5,
+      "local": 42,
+      "eu": 42,
+      "cm": 26.5
+    },
+    {
+      "us": 9,
+      "local": 42.5,
+      "eu": 42.5,
+      "cm": 27
+    },
+    {
+      "us": 9.5,
+      "local": 43,
+      "eu": 43,
+      "cm": 27.5
+    },
+    {
+      "us": 10,
+      "local": 44,
+      "eu": 44,
+      "cm": 28
+    },
+    {
+      "us": 10.5,
+      "local": 44.5,
+      "eu": 44.5,
+      "cm": 28.5
+    },
+    {
+      "us": 11,
+      "local": 45,
+      "eu": 45,
+      "cm": 29
+    },
+    {
+      "us": 11.5,
+      "local": 45.5,
+      "eu": 45.5,
+      "cm": 29.5
+    },
+    {
+      "us": 12,
+      "local": 46,
+      "eu": 46,
+      "cm": 30
+    },
+    {
+      "us": 13,
+      "local": 47.5,
+      "eu": 47.5,
+      "cm": 31
+    },
+    {
+      "us": 14,
+      "local": 49,
+      "eu": 49,
+      "cm": 32.5
+    }
+  ],
+  "women": [
+    {
+      "us": 5,
+      "local": 35.5,
+      "eu": 35.5,
+      "cm": 22
+    },
+    {
+      "us": 5.5,
+      "local": 36,
+      "eu": 36,
+      "cm": 22.5
+    },
+    {
+      "us": 6,
+      "local": 36.5,
+      "eu": 36.5,
+      "cm": 23
+    },
+    {
+      "us": 6.5,
+      "local": 37.5,
+      "eu": 37.5,
+      "cm": 23.5
+    },
+    {
+      "us": 7,
+      "local": 38,
+      "eu": 38,
+      "cm": 24
+    },
+    {
+      "us": 7.5,
+      "local": 38.5,
+      "eu": 38.5,
+      "cm": 24.5
+    },
+    {
+      "us": 8,
+      "local": 39,
+      "eu": 39,
+      "cm": 25
+    },
+    {
+      "us": 8.5,
+      "local": 40,
+      "eu": 40,
+      "cm": 25.5
+    },
+    {
+      "us": 9,
+      "local": 40.5,
+      "eu": 40.5,
+      "cm": 26
+    },
+    {
+      "us": 9.5,
+      "local": 41,
+      "eu": 41,
+      "cm": 26.5
+    },
+    {
+      "us": 10,
+      "local": 42,
+      "eu": 42,
+      "cm": 27
+    },
+    {
+      "us": 10.5,
+      "local": 42.5,
+      "eu": 42.5,
+      "cm": 27.5
+    },
+    {
+      "us": 11,
+      "local": 43,
+      "eu": 43,
+      "cm": 28
+    }
+  ]
+}

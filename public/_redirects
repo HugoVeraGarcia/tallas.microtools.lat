@@ -1,0 +1,7 @@
+# Los países no tienen página propia todavía (solo existe la categoría zapatos).
+/chile     /chile/zapatos/     301
+/chile/    /chile/zapatos/     301
+/peru      /peru/zapatos/      301
+/peru/     /peru/zapatos/      301
+/colombia  /colombia/zapatos/  301
+/colombia/ /colombia/zapatos/  301

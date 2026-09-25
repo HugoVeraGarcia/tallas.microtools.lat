@@ -1,0 +1,56 @@
+---
+// Sección propia de Perú: comprar zapatillas en EE. UU. y traerlas. Datos de SUNAT (asistente aduanero,
+// "Envíos de entrega rápida"), verificados el 24-09-2026.
+
+// Ejemplo de cálculo para un envío por encima de 200 dólares (categoría 3).
+const fob = 250;
+const flete = 30;
+const cif = fob + flete; // sin seguro, para simplificar
+const adValorem = cif * 0.04;
+const igv = (cif + adValorem) * 0.18;
+const total = adValorem + igv;
+const usd = (n: number) => `US$ ${n.toFixed(2)}`;
+---
+<h2>Comprar zapatillas en Estados Unidos desde Perú</h2>
+<p>
+  Quien busca su talla US casi siempre está a punto de comprar en Amazon o en la web de una marca estadounidense. Esto
+  es lo que conviene saber antes de pagar.
+</p>
+
+<h3>Impuestos: el límite de 200 dólares</h3>
+<p>
+  Las compras que llegan por courier (envíos de entrega rápida) están <strong>exoneradas de impuestos si el valor del
+  producto no supera los 200 dólares</strong>. El límite se mide sobre el valor FOB, es decir, el precio de las
+  zapatillas sin contar el envío.
+</p>
+<p>
+  Entre 200 y 2.000 dólares se pagan un 4 % de derecho ad valorem y un 18 % de IGV, calculados sobre el valor CIF
+  (producto más flete y seguro). Por ejemplo, unas zapatillas de {usd(fob)} con {usd(flete)} de envío pagan unos{" "}
+  {usd(adValorem)} de ad valorem y {usd(igv)} de IGV: cerca de <strong>{usd(total)}</strong> en impuestos. Con DNI,
+  una persona puede traer envíos de este rango hasta tres veces al año si cada uno no pasa de 1.000 dólares.
+</p>
+<p class="note">
+  Fuente: SUNAT,
+  <a href="https://asistenteaduanero.sunat.gob.pe/envios-de-entrega-rapida-courier-fob-hasta-2000" rel="nofollow noopener" target="_blank">envíos de entrega rápida</a>.
+  SUNAT ha anunciado que evalúa cambios en el régimen de compras por internet: confírmalo ahí antes de una compra grande.
+</p>
+
+<h3>Envío directo o casillero</h3>
+<ul>
+  <li>
+    <strong>Envío directo.</strong> Si la tienda envía a Perú, al pagar verás el costo de envío internacional y, cuando
+    corresponde, un depósito estimado de impuestos. Es lo más simple.
+  </li>
+  <li>
+    <strong>Casillero en EE. UU.</strong> Si la tienda no envía a Perú, un courier con casillero te da una dirección en
+    Estados Unidos y te trae el paquete; suele cobrar por kilo. Unas zapatillas con su caja pesan más de lo que parece:
+    pide que retiren la caja si no la necesitas.
+  </li>
+</ul>
+
+<h3>Si la talla no queda</h3>
+<p>
+  Devolver un par desde Perú casi siempre significa pagar el envío internacional de vuelta, y a veces no compensa. Por
+  eso vale la pena medir el pie antes y revisar la tabla de la marca exacta: una media talla bien elegida ahorra más que
+  cualquier cupón.
+</p>

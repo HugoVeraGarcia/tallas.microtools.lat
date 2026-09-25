@@ -1,0 +1,59 @@
+---
+import { brands, brandValue, rowsFor, GENDER_TITLE } from "../lib/sizes";
+import type { Country } from "../lib/countries";
+import type { Gender } from "../config";
+
+interface Props {
+  country: Country;
+  /** Modo talla: una fila por marca para esta talla US. */
+  us?: number;
+  genders: Gender[];
+  /** Modo completo: tabla talla × marca para cada género (se ignora `us`). */
+  full?: boolean;
+}
+const { country, us, genders, full = false } = Astro.props;
+// Las marcas publican numeración europea. En Chile y Perú es la talla local; en Colombia no.
+const unidad = country.localIsEU ? `talla ${country.gentilicio}` : "numeración europea (EU)";
+---
+{full ? (
+  genders.map((g) => (
+    <div class="table-scroll">
+      <table>
+        <caption>{GENDER_TITLE[g]}: talla US y {unidad} según la marca</caption>
+        <thead>
+          <tr><th>US</th>{brands.map((b) => <th>{b.nombre}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rowsFor(country, g).map((row) => (
+            <tr>
+              <td><strong>{row.us}</strong></td>
+              {brands.map((b) => <td>{brandValue(b, g, row.us) ?? "—"}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ))
+) : (
+  <div class="table-scroll">
+    <table>
+      <caption>Talla {us} US en {unidad}, marca por marca</caption>
+      <thead>
+        <tr><th>Marca</th>{genders.map((g) => <th>{GENDER_TITLE[g]}</th>)}</tr>
+      </thead>
+      <tbody>
+        {brands.map((b) => (
+          <tr>
+            <td>{b.nombre}</td>
+            {genders.map((g) => <td>{brandValue(b, g, us!) ?? "no la publica"}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
+<style>
+  caption { text-align: left; font-size: 0.85rem; color: var(--muted); padding: 0.25rem 0 0.5rem; caption-side: top; }
+  .table-scroll + .table-scroll { margin-top: 1.25rem; }
+</style>

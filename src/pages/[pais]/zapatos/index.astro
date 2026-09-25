@@ -1,0 +1,229 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import SizeConverter from "../../../components/SizeConverter.astro";
+import FootMeasure from "../../../components/FootMeasure.astro";
+import BrandTable from "../../../components/BrandTable.astro";
+import AdSlot from "../../../components/AdSlot.astro";
+import PeruCompras from "../../../components/PeruCompras.astro";
+import { sizeUrl, type Gender } from "../../../config";
+import { COUNTRIES, type Country } from "../../../lib/countries";
+import { GENDER_TITLE, rowsFor, rowFor, sameLengthIn } from "../../../lib/sizes";
+
+export function getStaticPaths() {
+  return COUNTRIES.map((country) => ({ params: { pais: country.slug }, props: { country } }));
+}
+
+const { country: C } = Astro.props as { country: Country };
+const gent = C.gentilicio;
+
+const title = `Conversor de tallas de zapatos US a ${C.nombre} | TallaFácil`;
+const description = C.localIsEU
+  ? `Convierte tu talla de zapatillas de Estados Unidos (US) a talla ${gent}: hombre y mujer, tabla por marca (Nike, Adidas, New Balance, Puma) y cálculo por largo de pie.`
+  : `Convierte tu talla de zapatillas de Estados Unidos (US) a talla colombiana y europea: hombre y mujer, tabla por marca y cálculo por largo de pie.`;
+
+const m9 = rowFor(C, "men", 9)!;
+const w9 = rowFor(C, "women", 9)!;
+const m8 = rowFor(C, "men", 8)!;
+// Talla de mujer con el mismo largo de pie que la 8 US de hombre.
+const w8 = sameLengthIn(C, "women", m8.cm)!;
+
+const faq = [
+  {
+    q: `¿Cómo convierto una talla US a talla ${gent}?`,
+    a: `Busca tu talla US en la tabla de tu género. Una 9 US de hombre es una ${m9.local} ${gent} y una 9 US de mujer es una ${w9.local}${
+      C.localIsEU ? ", según la guía de Nike" : " (en numeración europea, " + m9.eu + " y " + w9.eu + ")"
+    }. Si dudas entre dos, mide tu pie en centímetros y elige la talla cuyo largo sea igual o mayor.`,
+  },
+  {
+    q: "¿Por qué la misma talla US es distinta en hombre y en mujer?",
+    a: `Porque Estados Unidos usa dos escalas distintas. Para el mismo pie, la talla de mujer es entre una y una talla y media mayor que la de hombre, según la marca: un pie de ${m8.cm} cm es una ${m8.us} US de hombre y una ${w8.us} US de mujer.`,
+  },
+  C.localIsEU
+    ? {
+        q: `¿La talla ${gent} es igual a la europea?`,
+        a: `Sí. En ${C.nombre} el calzado de adulto se vende con la numeración europea (38, 39, 40…), la misma que aparece como EU en la etiqueta interior.`,
+      }
+    : {
+        q: "¿La talla colombiana es igual a la europea?",
+        a: `No. La talla colombiana es más baja: una 9 US de hombre es una ${m9.local} colombiana y una ${m9.eu} europea. Muchas tiendas en Colombia usan la colombiana y la etiqueta trae la europea, así que conviene preguntar cuál usa la tienda.`,
+      },
+  {
+    q: "¿Todas las marcas convierten igual?",
+    a: "No. La diferencia suele ser de media talla, o de un tercio en el caso de Adidas, que usa tallas como 42⅔. Por eso esta página incluye la tabla de cada marca.",
+  },
+  {
+    q: "¿Qué hago si estoy entre dos tallas?",
+    a: "Elige la mayor. Media talla de más se corrige con un calcetín más grueso o una plantilla; media talla de menos hace daño, sobre todo al correr.",
+  },
+];
+const faqLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+};
+---
+<Layout
+  title={title}
+  description={description}
+  lang={C.lang}
+  ogLocale={C.ogLocale}
+  crumbs={[{ name: `${C.nombre}: zapatos`, href: `/${C.slug}/zapatos/` }]}
+  jsonLd={[faqLd]}
+>
+  <h1>Conversor de tallas de zapatos: Estados Unidos a {C.nombre}</h1>
+  <p class="lede">
+    ¿Vas a comprar zapatillas en una tienda de Estados Unidos y no sabes qué talla pedir? Elige tu talla US y te
+    mostramos la equivalencia {gent}{!C.localIsEU && " y la europea"}, en hombre y en mujer, con el largo de pie en
+    centímetros.
+  </p>
+
+  <SizeConverter men={C.men} women={C.women} countryLabel={C.nombre} initialGender="men" initialUs={9} showEu={!C.localIsEU} />
+
+  <h2 id="medir">Calcula tu talla por el largo del pie</h2>
+  <p>
+    Si no sabes tu talla US, mide tu pie (más abajo te explicamos cómo) y escribe la medida. Te decimos la talla que
+    te corresponde y su equivalente {gent}.
+  </p>
+  <FootMeasure men={C.men} women={C.women} gentilicio={gent} urlTemplate={`/${C.slug}/zapatos/talla-{slug}-us-en-${C.slug}/{hash}`} />
+
+  <AdSlot slot="top" />
+
+  <h2>Busca tu talla directamente</h2>
+  {(["men", "women"] as Gender[]).map((g) => (
+    <>
+      <h3>{GENDER_TITLE[g]}</h3>
+      <ul class="chips">
+        {rowsFor(C, g).map((row) => (
+          <li><a href={sizeUrl(C.slug, row.us, g)}>Talla {row.us} US</a></li>
+        ))}
+      </ul>
+    </>
+  ))}
+
+  <h2>Qué numeración se usa en {C.nombre}</h2>
+  {C.sistema.map((p) => <p>{p}</p>)}
+
+  <h2>Tabla de tallas: Estados Unidos a {C.nombre}</h2>
+  <div class="tables">
+    {(["men", "women"] as Gender[]).map((g) => (
+      <div class="table-scroll">
+        <h3>{GENDER_TITLE[g]}</h3>
+        <table>
+          <thead>
+            <tr><th>US</th><th>{C.nombre}</th>{!C.localIsEU && <th>EU</th>}<th>cm</th></tr>
+          </thead>
+          <tbody>
+            {rowsFor(C, g).map((row) => (
+              <tr>
+                <td><a href={sizeUrl(C.slug, row.us, g)}>{row.us}</a></td>
+                <td>{row.local}</td>
+                {!C.localIsEU && <td>{row.eu}</td>}
+                <td>{row.cm}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ))}
+  </div>
+  <p class="note">Fuente: {C.source}</p>
+
+  <h2>Cómo se leen las tallas de Estados Unidos</h2>
+  <p>
+    En Estados Unidos el calzado se mide con una escala propia que avanza de media en media talla: 8, 8.5, 9, 9.5…
+    Cada media talla equivale a unos 0,5 cm más de largo de pie.
+  </p>
+  <p>
+    La trampa está en que Estados Unidos tiene <strong>dos escalas distintas, una para hombre y otra para mujer</strong>.
+    Para el mismo pie, la talla de mujer es entre una y una talla y media mayor, según la marca: un pie de {m8.cm} cm es
+    una {m8.us} US de hombre y una {w8.us} US de mujer. Por eso "talla 9 US" no dice nada si no sabes de qué tabla
+    viene: en hombre es una {m9.local} {gent} y en mujer una {w9.local}.
+  </p>
+  <p>
+    Las zapatillas unisex (muchas Converse, Vans o modelos de running) suelen venir en la escala de hombre. Si eres
+    mujer y compras un modelo unisex, busca tu largo de pie en la tabla de hombre.
+  </p>
+  <p>
+    La etiqueta interior de casi cualquier zapatilla trae cuatro números: US, UK, EU y cm (a veces JP o CM). El de cm
+    es el largo de pie para el que está pensada. Si tienes a mano unas zapatillas que te queden bien, esa etiqueta es
+    la mejor referencia que existe.
+  </p>
+
+  <h2>Por qué cambia la talla según la marca</h2>
+  <p>
+    No existe un estándar único entre la escala estadounidense y la europea: cada fabricante publica su propia tabla.
+    Nike y New Balance coinciden en la mayoría de las tallas de hombre; Puma tiende a marcar un número europeo algo
+    menor para la misma talla US, y Adidas usa su propio sistema en tercios (40, 40⅔, 41⅓, 42…).
+    {C.localIsEU
+      ? " La conversión principal de este sitio usa la guía oficial de Nike; estas son las demás:"
+      : " Las marcas publican estas tablas en numeración europea, así que esta es la columna EU, no la talla colombiana:"}
+  </p>
+  <BrandTable country={C} genders={["men", "women"]} full />
+  <p class="note">"—" indica que la marca no publica esa talla en su tabla. Datos tomados de la guía de tallas de cada marca.</p>
+
+  <AdSlot slot="mid" />
+
+  <h2>Cómo medir tu pie correctamente</h2>
+  <ol>
+    <li>Pon una hoja de papel en el suelo, pegada a una pared.</li>
+    <li>Párate encima, descalzo o con el calcetín que usarás, con el talón apoyado contra la pared.</li>
+    <li>Pide a alguien que marque con un lápiz la punta de tu dedo más largo, con el lápiz vertical.</li>
+    <li>Mide con una regla desde el borde de la hoja hasta la marca. Esa es tu medida en centímetros.</li>
+    <li>Repite con el otro pie: es normal que haya unos milímetros de diferencia. Usa la medida mayor.</li>
+  </ol>
+  <p>
+    Dos errores frecuentes: medir por la mañana (el pie crece a lo largo del día, mide por la tarde) y medir la plantilla
+    o la suela de un zapato viejo, que siempre es más larga que el pie. La tabla de tallas se refiere al largo del pie,
+    no al del zapato.
+  </p>
+
+  <h2>Antes de comprar en una tienda de Estados Unidos</h2>
+  <ul>
+    <li>
+      <strong>Revisa la tabla del producto.</strong> Muchas fichas en Amazon y en tiendas de marca incluyen su propia
+      guía de tallas; si difiere de la general, manda la del producto.
+    </li>
+    <li>
+      <strong>Fíjate en el ancho.</strong> En Estados Unidos el ancho viene con letras: D es el ancho normal de hombre y
+      B el de mujer; 2E o 4E son más anchos. Si tienes el pie ancho, busca esas versiones.
+    </li>
+    <li>
+      <strong>Lee las opiniones sobre la horma.</strong> Frases como "runs small" o "runs large" indican que el modelo
+      calza más chico o más grande de lo normal.
+    </li>
+    <li>
+      <strong>Comprueba la política de devolución</strong> antes de pagar, sobre todo si el envío es internacional.
+    </li>
+    <li>
+      <strong>Si compras en {C.nombre}</strong>, en {C.stores.map((s) => s.nombre).join(" o ")} busca por la talla{" "}
+      {gent}{!C.localIsEU && " y confirma en la ficha si la tienda usa talla colombiana o europea"}{C.tiendasTalla && "; en Falabella, confirma en la ficha si la talla es europea o de la columna CO de su guía"}.
+    </li>
+  </ul>
+
+  {C.slug === "peru" && <PeruCompras />}
+
+  <h2>Preguntas frecuentes</h2>
+  <div class="faq">
+    {faq.map((f) => (
+      <details>
+        <summary>{f.q}</summary>
+        <p>{f.a}</p>
+      </details>
+    ))}
+  </div>
+
+  <p class="note">
+    Conversor para otros países:
+    {COUNTRIES.filter((x) => x.slug !== C.slug).map((x, i) => (
+      <>{i > 0 && " · "}<a href={`/${x.slug}/zapatos/`}>US a {x.nombre}</a></>
+    ))}
+  </p>
+
+  <AdSlot slot="bottom" />
+
+  <style>
+    .tables { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .tables > div { flex: 1; min-width: 220px; }
+    .tables h3 { margin-top: 0; }
+  </style>
+</Layout>

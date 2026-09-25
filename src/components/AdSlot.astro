@@ -1,0 +1,17 @@
+---
+interface Props {
+  slot: "top" | "mid" | "bottom";
+}
+const { slot } = Astro.props;
+---
+<div class="ad-slot" data-slot={slot} aria-label="Publicidad"></div>
+
+<style>
+  .ad-slot {
+    min-height: 100px;
+    margin: 1.5rem 0;
+  }
+  .ad-slot[data-slot="mid"] {
+    min-height: 250px;
+  }
+</style>

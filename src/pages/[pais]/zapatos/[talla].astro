@@ -1,0 +1,345 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import SizeConverter from "../../../components/SizeConverter.astro";
+import BrandTable from "../../../components/BrandTable.astro";
+import AdSlot from "../../../components/AdSlot.astro";
+import { amazonSearchUrl, genderLabel, sizeUrl, sizeSlug, AMAZON_DISCLOSURE, type Gender } from "../../../config";
+import { COUNTRIES, type Country, type SizeRow } from "../../../lib/countries";
+import {
+  rowFor,
+  rowsFor,
+  allUsSizes,
+  neighbors,
+  brandGroups,
+  joinEs,
+  sameLengthIn,
+  isWhole,
+  GENDER_TITLE,
+} from "../../../lib/sizes";
+
+export function getStaticPaths() {
+  return COUNTRIES.flatMap((country) =>
+    allUsSizes(country).map((us) => ({
+      params: { pais: country.slug, talla: sizeSlug(country.slug, us) },
+      props: { country, us },
+    }))
+  );
+}
+
+const { country, us } = Astro.props as { country: Country; us: number };
+const C = country;
+const gent = C.gentilicio;
+const fuenteLocal = C.localIsEU ? "la guía oficial de Nike" : `la guía de tallas de Falabella ${C.nombre}`;
+
+const menRow = rowFor(C, "men", us);
+const womenRow = rowFor(C, "women", us);
+const both = Boolean(menRow && womenRow);
+const primaryGender: Gender = menRow ? "men" : "women";
+const genders: Gender[] = [menRow && "men", womenRow && "women"].filter(Boolean) as Gender[];
+const rowOf = (g: Gender) => (g === "men" ? menRow : womenRow)!;
+const primary = rowOf(primaryGender);
+const cards = genders.map((g) => ({ gender: g, id: g === "men" ? "hombre" : "mujer", row: rowOf(g) }));
+
+const menRows = rowsFor(C, "men");
+const womenRows = rowsFor(C, "women");
+const missingNote = !menRow
+  ? `En calzado de hombre, la tabla empieza en la US ${menRows[0].us} (${menRows[0].local} ${gent}).`
+  : !womenRow
+    ? `En calzado de mujer, la tabla llega hasta la US ${womenRows[womenRows.length - 1].us} (${womenRows[womenRows.length - 1].local} ${gent}).`
+    : "";
+
+// ---------- Textos que dependen de los números de esta talla y de este país ----------
+
+function brandSentence(g: Gender): string {
+  const groups = brandGroups(g, us);
+  if (groups.length === 1) return `${joinEs(groups[0].names)} coinciden: ${groups[0].value}.`;
+  const parts = groups.map((x) => `${joinEs(x.names)} ${x.names.length > 1 ? "la marcan" : "la marca"} como ${x.value}`);
+  return `${joinEs(parts)}.`;
+}
+
+function betweenSentence(g: Gender, row: SizeRow): string {
+  const { prev, next } = neighbors(C, g, us);
+  const bits: string[] = [];
+  if (prev) bits.push(`la talla anterior, US ${prev.us}, es una ${prev.local} ${gent} (${prev.cm} cm)`);
+  if (next) bits.push(`la siguiente, US ${next.us}, es una ${next.local} (${next.cm} cm)`);
+  const around = bits.length ? `En ${genderLabel(g)}, ${joinEs(bits)}. ` : "";
+  const advice = next
+    ? `Si tu pie mide más de ${row.cm} cm, la US ${us} te quedará justa: sube a la US ${next.us}.`
+    : `Es la talla más grande de esta tabla; si tu pie mide más de ${row.cm} cm, busca tallas especiales de la marca.`;
+  return around + advice;
+}
+
+const faq: { q: string; a: string }[] = [];
+if (both) {
+  const m = menRow!;
+  const w = womenRow!;
+  const equivMen = sameLengthIn(C, "men", w.cm);
+  faq.push({
+    q: `¿La talla ${us} US es igual en hombre y en mujer?`,
+    a: `No. En calzado de hombre la ${us} US es una ${m.local} ${gent} (${m.cm} cm de largo de pie) y en calzado de mujer es una ${w.local} (${w.cm} cm). Cada género tiene su propia tabla.${
+      equivMen ? ` Por largo de pie, una ${us} US de mujer equivale a una ${equivMen.us} US de hombre.` : ""
+    }`,
+  });
+}
+for (const g of genders) {
+  const r = rowOf(g);
+  const suffix = both ? ` de ${genderLabel(g)}` : "";
+  if (!C.localIsEU) {
+    faq.push({
+      q: `¿Qué talla colombiana es la ${us} US${suffix}?`,
+      a: `Es una ${r.local} colombiana según ${fuenteLocal}, y una ${r.eu} en numeración europea (la que aparece como EU en la etiqueta). Corresponde a un pie de ${r.cm} cm.`,
+    });
+  } else if (!isWhole(r.local)) {
+    faq.push({
+      q: `¿La talla ${us} US${suffix} es ${Math.floor(r.local)} o ${Math.ceil(r.local)} en ${C.nombre}?`,
+      a: `Ninguna de las dos exactamente: según ${fuenteLocal} es una ${r.local}. Si la tienda solo vende números enteros, elige la ${Math.ceil(r.local)}: media talla de más se corrige con un calcetín grueso o una plantilla; media talla de menos, no.`,
+    });
+  } else {
+    faq.push({
+      q: `¿Qué talla ${gent} es la ${us} US${suffix}?`,
+      a: `Es una ${r.local} ${gent} según ${fuenteLocal}, que corresponde a un pie de ${r.cm} cm de largo. En otras marcas puede variar hasta media talla.`,
+    });
+  }
+  faq.push({
+    q: `¿Cuántos centímetros mide una talla ${us} US${suffix}?`,
+    a: `Corresponde a un pie de ${r.cm} cm de largo, medido del talón a la punta del dedo más largo. Esa es la medida del pie, no la de la suela, que siempre es algo más larga.`,
+  });
+}
+if (!C.localIsEU) {
+  const r = primary;
+  faq.push({
+    q: `¿Por qué la etiqueta dice ${r.eu} y en la tienda me dicen ${r.local}?`,
+    a: `Porque en Colombia conviven dos numeraciones. La etiqueta trae la europea (EU ${r.eu}) y muchas tiendas colombianas hablan en talla colombiana (${r.local}). Es el mismo zapato: pregunta siempre cuál de las dos usa la tienda.`,
+  });
+}
+faq.push({
+  q: `¿La talla ${us} US es igual en Nike, Adidas, New Balance y Puma?`,
+  a:
+    (C.localIsEU ? "" : "En numeración europea. ") +
+    genders.map((g) => (both ? `${GENDER_TITLE[g]}: ${brandSentence(g)}` : brandSentence(g))).join(" "),
+});
+
+const faqLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+};
+
+const title = both
+  ? `Talla ${us} US en ${C.nombre}: ${menRow!.local} hombre, ${womenRow!.local} mujer | TallaFácil`
+  : `Talla ${us} US en ${C.nombre} (${genderLabel(primaryGender)}): ${primary.local} | TallaFácil`;
+const euBit = (r: SizeRow) => (C.localIsEU ? `${r.cm} cm` : `EU ${r.eu}, ${r.cm} cm`);
+const description = both
+  ? `La talla ${us} US equivale a la ${menRow!.local} ${gent} en hombre (${euBit(menRow!)}) y a la ${womenRow!.local} en mujer (${euBit(womenRow!)}). Tabla por marca y conversor visual.`
+  : `La talla ${us} US de ${genderLabel(primaryGender)} equivale a la ${primary.local} ${gent} (${euBit(primary)}). Tabla por marca y conversor visual.`;
+---
+<Layout
+  title={title}
+  description={description}
+  lang={C.lang}
+  ogLocale={C.ogLocale}
+  crumbs={[
+    { name: `${C.nombre}: zapatos`, href: `/${C.slug}/zapatos/` },
+    { name: `Talla ${us} US`, href: `/${C.slug}/zapatos/${sizeSlug(C.slug, us)}/` },
+  ]}
+  jsonLd={[faqLd]}
+>
+  <h1>Talla {us} US en {C.nombre}: ¿qué talla es?</h1>
+
+  {both ? (
+    <p class="lede">
+      Depende de si es calzado de hombre o de mujer, porque cada uno tiene su propia tabla. La talla {us} US es una{" "}
+      <strong>{menRow!.local} {gent} en hombre</strong> y una <strong>{womenRow!.local} {gent} en mujer</strong>.
+    </p>
+  ) : (
+    <p class="lede">
+      La talla {us} US de {genderLabel(primaryGender)} es una <strong>{primary.local} {gent}</strong>{" "}
+      ({primary.cm} cm de largo de pie).
+    </p>
+  )}
+
+  <div class={`answers ${both ? "two" : "one"}`}>
+    {cards.map(({ gender, id, row }) => (
+      <section class="answer" id={id} aria-label={`Talla ${us} US de ${genderLabel(gender)}`}>
+        <p class="answer-gender">{GENDER_TITLE[gender]}</p>
+        <p class="answer-main">
+          <span class="answer-us">US {row.us}</span>
+          <span class="answer-eq">=</span>
+          <span class="answer-cl">{row.local}</span>
+        </p>
+        <p class="answer-cm">
+          Talla {gent}
+          {!C.localIsEU && <> · europea {row.eu}</>} · {row.cm} cm de largo de pie
+        </p>
+        <a class="cta-btn" href={amazonSearchUrl(gender, row.us)} target="_blank" rel="noopener sponsored">
+          Ver talla {row.us} US de {genderLabel(gender)} en Amazon
+        </a>
+        <p class="stores">
+          Talla {row.local} en{" "}
+          {C.stores.map((s, i) => (
+            <>
+              {i > 0 && " · "}
+              <a href={s.url(gender, row.local)} target="_blank" rel="noopener">{s.nombre}</a>
+            </>
+          ))}
+        </p>
+      </section>
+    ))}
+  </div>
+  {missingNote && <p class="note">{missingNote}</p>}
+  <p class="note">{C.sistemaCorto} {AMAZON_DISCLOSURE}</p>
+
+  <AdSlot slot="top" />
+
+  <h2>La talla {us} US según la marca</h2>
+  <p>
+    {C.localIsEU
+      ? "La conversión de arriba usa la guía oficial de Nike, pero cada marca redondea a su manera."
+      : "Las marcas publican sus tablas en numeración europea, no en talla colombiana: estos son los números que verás como EU en la etiqueta."}
+    {genders.map((g) => <>{" "}{both ? <strong>{GENDER_TITLE[g]}: </strong> : ""}{brandSentence(g)}</>)}
+  </p>
+  <BrandTable country={C} us={us} genders={genders} />
+  <p class="note">
+    Adidas usa tercios de talla (42⅔ se lee "cuarenta y dos dos tercios"). En la etiqueta interior del calzado siempre
+    aparecen las tallas US, UK y EU.
+  </p>
+
+  {C.tiendasTalla && (
+    <>
+      <h2>La talla {us} US en tiendas de {C.nombre}</h2>
+      <p>
+        No todas las tiendas publican la misma tabla. Esto es lo que vas a ver en cada una para la {us} US:
+      </p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Tienda</th>{genders.map((g) => <th>{GENDER_TITLE[g]}</th>)}</tr>
+          </thead>
+          <tbody>
+            {C.tiendasTalla(primaryGender, primary).map((t, i) => (
+              <tr>
+                <td>{t.tienda}</td>
+                {genders.map((g) => <td>{C.tiendasTalla!(g, rowOf(g))[i].talla}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <ul class="note">
+        {C.tiendasTalla(primaryGender, primary).map((t) => <li><strong>{t.tienda}:</strong> {t.nota}</li>)}
+      </ul>
+    </>
+  )}
+
+  <h2>Compara en el conversor</h2>
+  <p>Cambia de talla o de género y mira cómo crece el pie sobre una regla a escala real.</p>
+  <SizeConverter
+    men={C.men}
+    women={C.women}
+    countryLabel={C.nombre}
+    initialGender={primaryGender}
+    initialUs={us}
+    showEu={!C.localIsEU}
+  />
+
+  <h2>¿Y si estás entre dos tallas?</h2>
+  {genders.map((g) => <p>{betweenSentence(g, rowOf(g))}</p>)}
+  <p>
+    Entre una talla y la siguiente hay medio centímetro de largo de pie. Si tu medida cae justo en el límite, elige la
+    talla mayor, sobre todo en zapatillas para correr: el pie se hincha con el esfuerzo y necesita holgura en la punta.
+  </p>
+
+  <AdSlot slot="mid" />
+
+  <h2>Cómo comprobar tu talla en casa</h2>
+  <ol>
+    <li>Pon una hoja en el suelo, pegada a una pared, y apoya el talón contra la pared.</li>
+    <li>Marca con un lápiz, vertical, la punta del dedo más largo.</li>
+    <li>Mide con una regla desde el borde de la hoja hasta la marca, en centímetros.</li>
+    <li>Repite con el otro pie y quédate con la medida mayor. Mide por la tarde, cuando el pie está más grande.</li>
+  </ol>
+  <p>
+    Con esa medida, la tabla de abajo te dice la talla exacta, o puedes usar el{" "}
+    <a href={`/${C.slug}/zapatos/#medir`}>calculador por largo de pie</a>.
+  </p>
+
+  <h2>Preguntas frecuentes sobre la talla {us} US en {C.nombre}</h2>
+  <div class="faq">
+    {faq.map((f) => (
+      <details>
+        <summary>{f.q}</summary>
+        <p>{f.a}</p>
+      </details>
+    ))}
+  </div>
+
+  <h2>Tabla completa de tallas: Estados Unidos a {C.nombre}</h2>
+  <div class="tables">
+    {(["men", "women"] as Gender[]).map((g) => (
+      <div class="table-scroll">
+        <h3>{GENDER_TITLE[g]}</h3>
+        <table>
+          <thead>
+            <tr><th>US</th><th>{C.nombre}</th>{!C.localIsEU && <th>EU</th>}<th>cm</th></tr>
+          </thead>
+          <tbody>
+            {rowsFor(C, g).map((row) => (
+              <tr class={row.us === us ? "highlight" : ""}>
+                <td>{row.us}</td>
+                <td>{row.local}</td>
+                {!C.localIsEU && <td>{row.eu}</td>}
+                <td>{row.cm}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ))}
+  </div>
+  <p class="note">Fuente: {C.source}</p>
+
+  <h2>Otras tallas de zapatos en {C.nombre}</h2>
+  {(["men", "women"] as Gender[]).map((g) => (
+    <>
+      <h3>{GENDER_TITLE[g]}</h3>
+      <ul class="chips">
+        {rowsFor(C, g).map((row) => (
+          <li><a class={row.us === us ? "current" : ""} href={sizeUrl(C.slug, row.us, g)}>Talla {row.us} US</a></li>
+        ))}
+      </ul>
+    </>
+  ))}
+  <p class="note">
+    ¿Compras desde otro país?
+    {COUNTRIES.filter((x) => x.slug !== C.slug).map((x, i) => (
+      <>{i > 0 && " · "}<a href={sizeUrl(x.slug, us)}>Talla {us} US en {x.nombre}</a></>
+    ))}
+  </p>
+
+  <AdSlot slot="bottom" />
+
+  <style>
+    .answers { display: grid; gap: 1rem; margin: 1.25rem 0 0.5rem; }
+    .answers.two { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .answer {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem;
+      text-align: center; scroll-margin-top: 1rem;
+    }
+    .answer:target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-line); }
+    .answer-gender { margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+    .answer-main { margin: 0.25rem 0 0; display: flex; justify-content: center; align-items: baseline; gap: 0.6rem; }
+    .answer-us { font-size: 1.1rem; color: var(--muted); font-weight: 600; }
+    .answer-eq { color: var(--muted); }
+    .answer-cl { font-size: 2.25rem; font-weight: 800; line-height: 1.1; }
+    .answer-cm { margin: 0.1rem 0 0.9rem; font-size: 0.85rem; color: var(--muted); }
+    .cta-btn {
+      display: inline-block; padding: 0.6rem 1rem; background: var(--cta); color: #111; border-radius: 8px;
+      text-decoration: none; font-weight: 600; font-size: 0.9rem;
+    }
+    .cta-btn:hover { opacity: 0.9; }
+    .stores { margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--muted); }
+    .tables { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .tables > div { flex: 1; min-width: 220px; }
+    .tables h3 { margin-top: 0; }
+  </style>
+</Layout>

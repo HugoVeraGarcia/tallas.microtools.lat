@@ -1,0 +1,195 @@
+---
+import { SITE, ADSENSE, AMAZON_DISCLOSURE } from "../config";
+
+interface Crumb {
+  name: string;
+  href: string;
+}
+interface Props {
+  title: string;
+  description: string;
+  /** Migas de pan (sin incluir la portada). Generan también el JSON-LD BreadcrumbList. */
+  crumbs?: Crumb[];
+  /** Bloques JSON-LD adicionales (FAQPage, etc.). */
+  jsonLd?: object[];
+  /** Idioma de la página: es-CL, es-PE, es-CO; "es" para las páginas generales. */
+  lang?: string;
+  ogLocale?: string;
+}
+const { title, description, crumbs = [], jsonLd = [], lang = "es", ogLocale = "es_LA" } = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, SITE.dominio).href;
+
+const breadcrumbLd = crumbs.length
+  ? {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [{ name: SITE.marca, href: "/" }, ...crumbs].map((c, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: c.name,
+        item: new URL(c.href, SITE.dominio).href,
+      })),
+    }
+  : null;
+const allLd = [...(breadcrumbLd ? [breadcrumbLd] : []), ...jsonLd];
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0a6cff" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE.marca} />
+    <meta property="og:locale" content={ogLocale} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="google-adsense-account" content={ADSENSE.cliente} />
+    <script
+      is:inline
+      async
+      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE.cliente}`}
+      crossorigin="anonymous"></script>
+    {allLd.map((ld) => <script is:inline type="application/ld+json" set:html={JSON.stringify(ld)} />)}
+  </head>
+  <body>
+    <a class="skip" href="#contenido">Ir al contenido</a>
+    <header class="site-header">
+      <div class="wrap header-row">
+        <div class="logo">
+          <a class="logo-portfolio" href={SITE.portafolio}>microtools</a>
+          <span class="logo-sep" aria-hidden="true">/</span>
+          <a class="logo-app" href="/">{SITE.marca}</a>
+        </div>
+        <nav class="nav" aria-label="Principal">
+          <a href="/chile/zapatos/">Chile</a>
+          <a href="/peru/zapatos/">Perú</a>
+          <a href="/colombia/zapatos/">Colombia</a>
+          <a href={SITE.portafolio} rel="noopener">Más herramientas</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="contenido" class="wrap">
+      {crumbs.length > 0 && (
+        <nav class="breadcrumb" aria-label="Migas de pan">
+          <a href="/">{SITE.marca}</a>
+          {crumbs.map((c, i) =>
+            i === crumbs.length - 1 ? (
+              <span> / <span aria-current="page">{c.name}</span></span>
+            ) : (
+              <span> / <a href={c.href}>{c.name}</a></span>
+            )
+          )}
+        </nav>
+      )}
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p class="footer-links">
+          <a href={SITE.portafolio} rel="noopener">Más herramientas de microtools</a>
+          <a href="/legal/aviso-legal/">Aviso legal</a>
+          <a href="/legal/privacidad/">Política de privacidad</a>
+          <a href="/legal/cookies/">Política de cookies</a>
+        </p>
+        <p>
+          Conversión de tallas orientativa: puede variar según marca y modelo. Revisa siempre la guía de tallas del
+          fabricante antes de comprar.
+        </p>
+        <p>{AMAZON_DISCLOSURE}</p>
+        <p>&copy; 2026 microtools · Perú</p>
+      </div>
+    </footer>
+
+    <script>
+      import "../scripts/ads";
+      import { SITE } from "../config";
+      // El correo se escribe al cargar: el revisor lo ve, los rastreadores de spam que no ejecutan JS, no.
+      for (const el of document.querySelectorAll<HTMLElement>("[data-correo]")) {
+        el.textContent = SITE.correo;
+        if (el instanceof HTMLAnchorElement) el.href = `mailto:${SITE.correo}`;
+      }
+    </script>
+
+    <style is:global>
+      :root {
+        color-scheme: light;
+        --ink: #1a1a1a;
+        --muted: #5c5c5c;
+        --accent: #0a6cff;
+        --accent-soft: #eaf2ff;
+        --accent-line: #bcd7ff;
+        --border: #e3e3e3;
+        --bg: #fafafa;
+        --card: #fff;
+        --cta: #f0a11c;
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.6;
+      }
+      a { color: var(--accent); }
+      .wrap { max-width: 760px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+      main.wrap { padding-top: 1.25rem; padding-bottom: 3rem; }
+      h1 { font-size: 1.6rem; line-height: 1.25; margin: 0.25rem 0 0.75rem; }
+      h2 { font-size: 1.2rem; line-height: 1.3; margin: 2.25rem 0 0.75rem; }
+      h3 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
+      p, li { overflow-wrap: anywhere; }
+      .lede { color: var(--muted); font-size: 1.05rem; }
+      .note { font-size: 0.875rem; color: var(--muted); }
+      .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.9rem; background: var(--card); }
+      th, td { text-align: left; padding: 0.4rem 0.55rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+      th { font-weight: 600; background: #f3f3f3; }
+      @media (max-width: 420px) {
+        th, td { padding: 0.35rem 0.4rem; font-size: 0.85rem; }
+        th { white-space: normal; }
+      }
+      tr.highlight td { background: var(--accent-soft); font-weight: 700; }
+      .skip { position: absolute; left: -999px; top: 0; background: #fff; padding: 0.5rem; z-index: 10; }
+      .skip:focus { left: 8px; top: 8px; }
+
+      .site-header { background: var(--card); border-bottom: 1px solid var(--border); }
+      .header-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 56px; flex-wrap: wrap; }
+      .logo { display: flex; align-items: baseline; gap: 0.35rem; font-weight: 700; }
+      .logo a { text-decoration: none; color: var(--ink); }
+      .logo-portfolio { color: var(--muted) !important; font-weight: 600; }
+      .logo-sep { color: var(--border); }
+      .nav { display: flex; gap: 1rem; font-size: 0.9rem; }
+      .nav a { color: var(--ink); text-decoration: none; }
+      .nav a:hover { color: var(--accent); }
+
+      .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
+      .breadcrumb a { color: var(--muted); }
+
+      .site-footer { border-top: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 0.85rem; padding: 1.5rem 0 2rem; }
+      .footer-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; }
+      .footer-links a { color: var(--ink); }
+
+      .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; padding: 0; margin: 0 0 1rem; }
+      .chips a {
+        display: inline-block; padding: 0.35rem 0.75rem; border: 1px solid var(--border); border-radius: 999px;
+        color: var(--ink); text-decoration: none; font-size: 0.875rem; background: var(--card);
+      }
+      .chips a:hover { border-color: var(--accent); color: var(--accent); }
+      .chips a.current { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+      .faq details { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.6rem; }
+      .faq summary { font-weight: 600; cursor: pointer; }
+      .faq details p { margin: 0.6rem 0 0; }
+    </style>
+  </body>
+</html>

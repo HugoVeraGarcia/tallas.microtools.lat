@@ -1,0 +1,25 @@
+{
+  "name": "tallas",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview --port 4321",
+    "check": "astro build && node scripts/check-build.mjs && node scripts/test-data.mjs",
+    "e2e": "node scripts/e2e.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^7.3.3"
+  },
+  "allowScripts": {
+    "esbuild": true
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

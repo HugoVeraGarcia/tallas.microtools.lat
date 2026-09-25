@@ -1,0 +1,212 @@
+---
+interface SizeRow { us: number; local: number; eu: number; cm: number }
+interface Props {
+  men: SizeRow[];
+  women: SizeRow[];
+  countryLabel: string;
+  initialGender?: "men" | "women";
+  initialUs?: number;
+  /** Muestra también la numeración europea (países cuya talla local no es la europea). */
+  showEu?: boolean;
+}
+const { men, women, countryLabel, initialGender = "men", initialUs = 9, showEu = false } = Astro.props;
+const data = { men, women };
+---
+<div class="converter" data-initial-gender={initialGender} data-initial-us={initialUs}>
+  <div class="controls">
+    <label>
+      Género
+      <select class="c-gender">
+        <option value="men">Hombre</option>
+        <option value="women">Mujer</option>
+      </select>
+    </label>
+    <label>
+      Talla US
+      <select class="c-us"></select>
+    </label>
+  </div>
+
+  <div class="result" aria-live="polite">
+    <div class="badge">
+      <span class="badge-label">US</span>
+      <span class="badge-value c-out-us"></span>
+    </div>
+    <span class="equals" aria-hidden="true">=</span>
+    <div class="badge accent">
+      <span class="badge-label">{countryLabel}</span>
+      <span class="badge-value c-out-cl"></span>
+    </div>
+  </div>
+  {showEu && <p class="eu-line">En numeración europea (etiqueta EU): <strong class="c-out-eu"></strong></p>}
+
+  <div class="visual">
+    <p class="visual-caption">Tu pie a escala, del talón a la punta del dedo, sobre una regla de 0 a 35 cm:</p>
+    <div class="stage">
+      <div class="shoe-track">
+        <!-- Huella de un pie visto desde arriba: talón a la izquierda (0 cm), punta del dedo gordo a la derecha.
+             viewBox de 100 × 40: el largo va de x=0 a x=100 y el alto se escala en proporción (sin deformar). -->
+        <svg class="shoe" viewBox="0 0 100 40" aria-hidden="true">
+          <path d="M14,31.5 C5,31.5 0,26.5 0,20.5 C0,14 5,9.5 13,9.5 C24,9.5 32,11.8 42,11.2 C52,10.6 60,5.8 70,4.6 C74,4.1 77,5 78.3,7.5 C79.8,11 79.5,15 78.5,19.5 C77.5,25 75.5,30.5 71.5,34.2 C62,37 44,35 30,33.2 C22,32.3 18,31.6 14,31.5 Z" />
+          <ellipse cx="89.8" cy="9.6" rx="9.8" ry="6" />
+          <ellipse cx="87.2" cy="18.6" rx="6.2" ry="3.7" />
+          <ellipse cx="84.6" cy="25.2" rx="5.3" ry="3.2" />
+          <ellipse cx="81.2" cy="30.8" rx="4.4" ry="2.8" />
+          <ellipse cx="77.2" cy="35.4" rx="3.6" ry="2.4" />
+        </svg>
+        <div class="toe-line c-toe"></div>
+        <div class="shoe-tip c-tip"></div>
+      </div>
+      <div class="ruler c-ruler" aria-hidden="true"></div>
+    </div>
+    <p class="visual-cm c-out-cm"></p>
+  </div>
+</div>
+
+<script is:inline type="application/json" class="size-data" set:html={JSON.stringify(data)} />
+
+<script>
+  type Row = { us: number; local: number; eu: number; cm: number };
+  type Data = { men: Row[]; women: Row[] };
+
+  // La regla empieza en 0 (el talón) para que el largo dibujado sea proporcional al real.
+  const SCALE_MAX = 35;
+
+  for (const root of document.querySelectorAll<HTMLElement>(".converter")) {
+    const raw = root.nextElementSibling?.classList.contains("size-data") ? root.nextElementSibling.textContent : null;
+    const data: Data = raw ? JSON.parse(raw) : { men: [], women: [] };
+
+    const genderSel = root.querySelector<HTMLSelectElement>(".c-gender")!;
+    const usSel = root.querySelector<HTMLSelectElement>(".c-us")!;
+    const outUs = root.querySelector(".c-out-us")!;
+    const outCl = root.querySelector(".c-out-cl")!;
+    const outCm = root.querySelector(".c-out-cm")!;
+    const outEu = root.querySelector(".c-out-eu");
+    const track = root.querySelector<HTMLElement>(".shoe-track")!;
+    const shoe = root.querySelector<SVGSVGElement>(".shoe")!;
+    const tip = root.querySelector<HTMLElement>(".c-tip")!;
+    const toe = root.querySelector<HTMLElement>(".c-toe")!;
+    const ruler = root.querySelector<HTMLElement>(".c-ruler")!;
+
+    const rowsFor = (g: string) => (g === "women" ? data.women : data.men);
+    const pct = (cm: number) => (Math.min(SCALE_MAX, Math.max(0, cm)) / SCALE_MAX) * 100;
+
+    for (let cm = 0; cm <= SCALE_MAX; cm++) {
+      const tick = document.createElement("div");
+      tick.className = cm % 5 === 0 ? "tick major" : "tick";
+      tick.style.left = `${pct(cm)}%`;
+      if (cm % 5 === 0) {
+        const label = document.createElement("span");
+        label.className = "tick-label";
+        label.textContent = String(cm);
+        tick.appendChild(label);
+      }
+      ruler.appendChild(tick);
+    }
+
+    /** Llena el select con las tallas del género y elige la más cercana a `target`. */
+    function populate(gender: string, target: number) {
+      const rows = rowsFor(gender);
+      usSel.innerHTML = "";
+      let best = rows[0];
+      for (const row of rows) {
+        const opt = document.createElement("option");
+        opt.value = String(row.us);
+        opt.textContent = String(row.us);
+        usSel.appendChild(opt);
+        if (Math.abs(row.us - target) < Math.abs(best.us - target)) best = row;
+      }
+      usSel.value = String(best.us);
+    }
+
+    function render() {
+      const rows = rowsFor(genderSel.value);
+      const row = rows.find((r) => r.us === parseFloat(usSel.value)) ?? rows[0];
+      if (!row) return;
+      outUs.textContent = String(row.us);
+      outCl.textContent = String(row.local);
+      if (outEu) outEu.textContent = String(row.eu);
+      outCm.textContent = `${row.cm} cm de largo de pie`;
+      const p = pct(row.cm);
+      shoe.style.width = `${p}%`;
+      tip.style.left = `${p}%`;
+      // El alto de la huella es proporcional a su largo: la etiqueta flota justo encima.
+      tip.style.bottom = `calc(${p}% + 8px)`;
+      toe.style.left = `${p}%`;
+      tip.textContent = `${row.cm} cm`;
+      track.dataset.cm = String(row.cm);
+    }
+
+    const initialUs = parseFloat(root.dataset.initialUs || "9");
+    const hashGender = location.hash === "#mujer" ? "women" : location.hash === "#hombre" ? "men" : "";
+    const initialGender =
+      hashGender && rowsFor(hashGender).some((r) => r.us === initialUs) ? hashGender : root.dataset.initialGender || "men";
+    genderSel.value = initialGender;
+    populate(initialGender, initialUs);
+    render();
+    // Las transiciones se activan después del primer dibujo: al cargar, el zapato aparece ya en su largo.
+    requestAnimationFrame(() => root.classList.add("ready"));
+
+    genderSel.addEventListener("change", () => {
+      populate(genderSel.value, parseFloat(usSel.value));
+      render();
+    });
+    usSel.addEventListener("change", render);
+  }
+</script>
+
+<style>
+  .converter {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0 1.25rem;
+  }
+  .controls { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .controls label {
+    display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--muted); flex: 1; min-width: 120px;
+  }
+  select { font-size: 1rem; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--ink); }
+  .result { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.25rem 0 1.25rem; }
+  .badge {
+    display: flex; flex-direction: column; align-items: center; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.75rem 1.25rem; min-width: 88px;
+  }
+  .badge.accent { background: var(--accent-soft); border-color: var(--accent-line); }
+  .badge-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .badge-value { font-size: 1.75rem; font-weight: 700; }
+  .equals { font-size: 1.5rem; color: var(--muted); }
+  .eu-line { text-align: center; margin: -0.5rem 0 1rem; font-size: 0.9rem; color: var(--muted); }
+
+  .visual { border-top: 1px dashed var(--border); padding-top: 1rem; }
+  .visual-caption { font-size: 0.8rem; color: var(--muted); margin: 0 0 0.5rem; }
+  .stage { position: relative; max-width: 520px; margin: 0 auto; }
+  /* Mismo ancho que la regla y alto = ancho / 2.5 (proporción del viewBox): la huella de 35 cm llena la caja. */
+  .shoe-track { position: relative; aspect-ratio: 5 / 2; }
+  .shoe { position: absolute; left: 0; bottom: 2px; display: block; width: 60%; height: auto; overflow: visible; }
+  .converter.ready .shoe { transition: width 0.25s ease; }
+  .converter.ready .shoe-tip { transition: left 0.25s ease, bottom 0.25s ease; }
+  .converter.ready .toe-line { transition: left 0.25s ease; }
+  .shoe path, .shoe ellipse { fill: var(--accent); }
+  .toe-line { position: absolute; bottom: 0; top: 0; width: 0; border-left: 1px dashed var(--muted); opacity: 0.6; }
+  .shoe-tip {
+    position: absolute; transform: translateX(-50%); background: var(--ink); color: #fff;
+    font-size: 0.72rem; font-weight: 700; padding: 2px 6px; border-radius: 6px; white-space: nowrap;
+  }
+  .shoe-tip::after {
+    content: ""; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+    border: 4px solid transparent; border-top-color: var(--ink);
+  }
+  .ruler { position: relative; height: 24px; border-top: 2px solid var(--ink); }
+  /* Los ticks se crean con JS: el atributo de scoping de Astro no llega a ellos, por eso :global(). */
+  .ruler :global(.tick) { position: absolute; top: 0; width: 1px; height: 5px; background: #aaa; }
+  .ruler :global(.tick.major) { height: 10px; background: var(--ink); }
+  .ruler :global(.tick-label) {
+    position: absolute; top: 11px; left: 0; transform: translateX(-50%); font-size: 0.68rem; color: var(--muted);
+  }
+  .visual-cm { margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--muted); text-align: center; }
+  @media (prefers-reduced-motion: reduce) {
+    .converter.ready .shoe, .converter.ready .shoe-tip, .converter.ready .toe-line { transition: none; }
+  }
+</style>

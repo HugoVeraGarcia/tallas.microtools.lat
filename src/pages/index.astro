@@ -1,0 +1,121 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { sizeUrl } from "../config";
+import { COUNTRIES, getCountry } from "../lib/countries";
+import { rowFor } from "../lib/sizes";
+
+const title = "TallaFácil: tallas de zapatillas de EE. UU. a Chile, Perú y Colombia";
+const description =
+  "Convierte tallas de zapatillas de Estados Unidos (US) a talla chilena, peruana y colombiana, en hombre y mujer, con tabla por marca y cálculo por largo de pie. Gratis.";
+
+const cl = getCountry("chile");
+const co = getCountry("colombia");
+const m9 = rowFor(cl, "men", 9)!;
+const w9 = rowFor(cl, "women", 9)!;
+const co9 = rowFor(co, "men", 9)!;
+const popular = [8, 9, 10];
+
+const webLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "TallaFácil",
+  url: "https://tallas.microtools.lat/",
+  inLanguage: "es",
+  publisher: { "@type": "Organization", name: "microtools", url: "https://microtools.lat/" },
+};
+---
+<Layout title={title} description={description} jsonLd={[webLd]}>
+  <h1>TallaFácil: tu talla de zapatillas de Estados Unidos, en la talla de tu país</h1>
+  <p class="lede">
+    Las tiendas de Estados Unidos venden el calzado en tallas US. TallaFácil las convierte al instante a la talla que
+    se usa en Chile, Perú y Colombia, en hombre y en mujer, y te muestra cuánto mide el pie en centímetros.
+  </p>
+
+  <div class="countries">
+    {COUNTRIES.map((c) => (
+      <a class="big-link" href={`/${c.slug}/zapatos/`}>
+        <span class="big-title">US a {c.nombre}</span>
+        <span class="big-desc">
+          {c.localIsEU ? `Talla ${c.gentilicio} (numeración europea)` : "Talla colombiana y europea"} · hombre y mujer
+        </span>
+        <span class="big-sizes">
+          Hombre: {popular.map((us, i) => <>{i > 0 && " · "}{us} US = {rowFor(c, "men", us)!.local}</>)}
+        </span>
+      </a>
+    ))}
+  </div>
+
+  <h2>Las tallas más buscadas</h2>
+  {COUNTRIES.map((c) => (
+    <p class="short">
+      {c.nombre}:{" "}
+      {[8, 9, 10].map((us, i) => (
+        <>{i > 0 && " · "}<a href={sizeUrl(c.slug, us, "men")}>{us} US hombre</a></>
+      ))}
+      {[7, 8].map((us) => (
+        <> · <a href={sizeUrl(c.slug, us, "women")}>{us} US mujer</a></>
+      ))}
+    </p>
+  ))}
+
+  <h2>Qué resuelve</h2>
+  <p>
+    Si compras en Amazon o en la tienda online de una marca estadounidense, la talla que eliges es la US. El problema
+    es que "talla 9 US" no significa lo mismo en hombre que en mujer: en Chile, en hombre es una {m9.local} y en mujer
+    una {w9.local}. Y no todos los países cuentan igual: en Colombia muchas tiendas usan la talla colombiana, así que
+    esa misma 9 US de hombre es una {co9.local} colombiana, aunque la etiqueta diga {co9.eu}. Equivocarse en media talla
+    es la diferencia entre unas zapatillas cómodas y una devolución internacional.
+  </p>
+  <p>TallaFácil junta en un solo lugar lo que necesitas para acertar:</p>
+  <ul>
+    <li>La equivalencia US → talla local de hombre y de mujer, con el largo de pie en centímetros.</li>
+    <li>Un conversor visual que dibuja el largo del pie a escala sobre una regla real.</li>
+    <li>La tabla de Nike, Adidas, New Balance y Puma, talla por talla, para ver dónde difieren.</li>
+    <li>Un cálculo por largo de pie para quien no conoce su talla US.</li>
+    <li>Una página por cada talla y país, con sus tallas vecinas y consejos para cuando estás entre dos.</li>
+  </ul>
+
+  <h2>Cómo usarlo en tres pasos</h2>
+  <ol>
+    <li>Elige tu país y si buscas calzado de hombre o de mujer.</li>
+    <li>
+      Escoge la talla US que ves en la tienda. Si no la conoces, mide tu pie en centímetros y usa el cálculo por largo
+      de pie.
+    </li>
+    <li>Revisa la tabla de la marca que vas a comprar: si la marca redondea distinto, ahí lo verás antes de pagar.</li>
+  </ol>
+
+  <h2>De dónde salen los datos</h2>
+  <p>
+    La conversión principal usa la guía oficial de tallas de Nike, verificada talla por talla. La talla colombiana
+    sigue la guía de tallas de Falabella Colombia. Las tablas de Adidas, New Balance y Puma vienen de las guías que
+    publica cada marca. Aun así, la horma cambia entre modelos: si la ficha del producto trae su propia tabla, esa
+    manda. Lo más fiable siempre es medir el pie en centímetros y comparar.
+  </p>
+
+  <h2>Privado y sin registro</h2>
+  <p>
+    El conversor funciona entero en tu navegador. No pedimos cuenta, no guardamos las medidas que escribes y no hay un
+    servidor que las reciba. El sitio se financia con publicidad y con enlaces de afiliado a tiendas: si compras
+    después de hacer clic, la tienda nos paga una comisión y a ti no te cuesta más.
+  </p>
+
+  <h2>Parte de microtools</h2>
+  <p>
+    TallaFácil es una de las herramientas de <a href="https://microtools.lat/">microtools</a>, un conjunto de
+    utilidades web pequeñas que resuelven una tarea concreta, gratis y sin registro.
+  </p>
+
+  <style>
+    .countries { display: grid; gap: 0.75rem; margin: 1.25rem 0; }
+    .big-link {
+      display: block; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem;
+      text-decoration: none; color: var(--ink);
+    }
+    .big-link:hover { border-color: var(--accent); }
+    .big-title { display: block; font-weight: 700; font-size: 1.15rem; color: var(--accent); }
+    .big-desc { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 0.15rem; }
+    .big-sizes { display: block; font-size: 0.85rem; margin-top: 0.35rem; }
+    .short { margin: 0.35rem 0; }
+  </style>
+</Layout>

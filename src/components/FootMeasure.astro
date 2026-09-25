@@ -1,0 +1,91 @@
+---
+interface SizeRow { us: number; local: number; eu: number; cm: number }
+interface Props {
+  men: SizeRow[];
+  women: SizeRow[];
+  /** Plantilla de URL de cada talla; {slug} se reemplaza por "9-5", {hash} por "#hombre"/"#mujer". */
+  urlTemplate: string;
+  /** "chilena", "peruana", "colombiana" */
+  gentilicio: string;
+}
+const { men, women, urlTemplate, gentilicio } = Astro.props;
+---
+<form class="measure" onsubmit="return false">
+  <div class="m-row">
+    <label>
+      Largo de tu pie (cm)
+      <input class="m-cm" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej.: 26,3" aria-describedby="m-help" />
+    </label>
+    <label>
+      Calzado de
+      <select class="m-gender">
+        <option value="men">Hombre</option>
+        <option value="women">Mujer</option>
+      </select>
+    </label>
+  </div>
+  <p class="m-help" id="m-help">Del talón a la punta del dedo más largo. Acepta coma o punto.</p>
+  <p class="m-out" aria-live="polite">Escribe el largo de tu pie para ver tu talla.</p>
+</form>
+<script is:inline type="application/json" class="measure-data" set:html={JSON.stringify({ men, women, urlTemplate, gentilicio })} />
+
+<script>
+  type Row = { us: number; local: number; eu: number; cm: number };
+  for (const form of document.querySelectorAll<HTMLFormElement>(".measure")) {
+    const raw = form.nextElementSibling?.textContent;
+    if (!raw) continue;
+    const data: { men: Row[]; women: Row[]; urlTemplate: string; gentilicio: string } = JSON.parse(raw);
+    const input = form.querySelector<HTMLInputElement>(".m-cm")!;
+    const gender = form.querySelector<HTMLSelectElement>(".m-gender")!;
+    const out = form.querySelector<HTMLElement>(".m-out")!;
+
+    function render() {
+      const cm = parseFloat(input.value.replace(",", "."));
+      const rows = gender.value === "women" ? data.women : data.men;
+      if (!Number.isFinite(cm) || cm <= 0) {
+        out.textContent = "Escribe el largo de tu pie para ver tu talla.";
+        return;
+      }
+      if (cm < 18 || cm > 35) {
+        out.textContent = "Revisa la medida: un pie adulto suele medir entre 21 y 33 cm.";
+        return;
+      }
+      // La talla correcta es la primera cuyo largo de pie es igual o mayor al tuyo.
+      const row = rows.find((r) => r.cm >= cm - 0.001);
+      if (!row) {
+        const last = rows[rows.length - 1];
+        out.textContent = `Tu pie supera la talla más grande de esta tabla (US ${last.us}, ${last.cm} cm). Busca tallas especiales de la marca.`;
+        return;
+      }
+      const href = data.urlTemplate
+        .replace("{slug}", String(row.us).replace(".", "-"))
+        .replace("{hash}", gender.value === "women" ? "#mujer" : "#hombre");
+      out.innerHTML = "";
+      out.append("Tu talla: ");
+      const strong = document.createElement("strong");
+      strong.textContent = `US ${row.us} = ${row.local} ${data.gentilicio}`;
+      out.append(strong, ` (hasta ${row.cm} cm). `);
+      const a = document.createElement("a");
+      a.href = href;
+      a.textContent = `Ver la talla ${row.us} US en detalle`;
+      out.append(a);
+    }
+    input.addEventListener("input", render);
+    gender.addEventListener("change", render);
+  }
+</script>
+
+<style>
+  .measure {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+  }
+  .m-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .m-row label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--muted); flex: 1; min-width: 140px; }
+  input, select { font-size: 1rem; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--ink); }
+  .m-help { margin: 0.4rem 0 0; font-size: 0.8rem; color: var(--muted); }
+  .m-out { margin: 0.9rem 0 0; }
+</style>
